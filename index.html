@@ -438,6 +438,75 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* ---------- chat widget ---------- */
+.chat-fab{
+  position:fixed;right:24px;bottom:24px;z-index:150;
+  width:60px;height:60px;border-radius:50%;
+  background:var(--violet);color:#fff;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 12px 34px rgba(139,92,246,.45),inset 0 1px 0 rgba(255,255,255,.15);
+  transition:transform .2s ease,box-shadow .2s ease;
+}
+.chat-fab:hover{transform:translateY(-3px) scale(1.04)}
+.chat-fab svg{width:26px;height:26px;position:absolute;transition:opacity .2s ease,transform .2s ease}
+.chat-fab .icon-close{opacity:0;transform:rotate(-45deg) scale(.5)}
+.chat-fab[aria-expanded="true"] .icon-bubble{opacity:0;transform:rotate(45deg) scale(.5)}
+.chat-fab[aria-expanded="true"] .icon-close{opacity:1;transform:rotate(0) scale(1)}
+.chat-fab .dot{
+  position:absolute;top:8px;right:8px;width:11px;height:11px;border-radius:50%;
+  background:var(--amber);border:2px solid var(--ink-0);animation:pulse 1.6s infinite;
+}
+.chat-fab[aria-expanded="true"] .dot{display:none}
+
+.chat-panel{
+  position:fixed;right:24px;bottom:96px;z-index:150;
+  width:380px;max-width:calc(100vw - 32px);height:520px;max-height:calc(100vh - 140px);
+  background:var(--glass-bg-strong);
+  backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);
+  border:1px solid var(--glass-border);border-radius:20px;
+  box-shadow:0 30px 80px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);
+  display:flex;flex-direction:column;overflow:hidden;
+  opacity:0;transform:translateY(16px) scale(.96);pointer-events:none;
+  transition:opacity .25s ease,transform .25s cubic-bezier(.2,.8,.2,1);
+}
+.chat-panel.open{opacity:1;transform:none;pointer-events:auto}
+
+.chat-head{padding:18px 20px;border-bottom:1px solid var(--glass-border);display:flex;flex-direction:column;gap:2px}
+.chat-title{font-family:var(--font-display);font-weight:700;color:var(--text-hi);font-size:15.5px}
+.chat-sub{font-size:12px;color:var(--candle-up);font-family:var(--font-mono)}
+
+.chat-messages{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.chat-msg{max-width:85%;font-size:14.5px;line-height:1.5;padding:10px 14px;border-radius:14px}
+.chat-msg.bot{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid var(--glass-border);color:var(--text-mid);border-bottom-left-radius:4px}
+.chat-msg.user{align-self:flex-end;background:var(--violet);color:#fff;border-bottom-right-radius:4px}
+.chat-msg p{margin:0}
+
+.typing-dots{display:inline-flex;gap:4px;padding:4px 0}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--text-low);animation:typingBounce 1.2s infinite ease-in-out}
+.typing-dots span:nth-child(2){animation-delay:.15s}
+.typing-dots span:nth-child(3){animation-delay:.3s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+
+.chat-input-row{display:flex;gap:10px;padding:14px 16px;border-top:1px solid var(--glass-border)}
+.chat-input-row input{
+  flex:1;background:rgba(255,255,255,.045);border:1px solid var(--glass-border);
+  border-radius:999px;padding:11px 16px;color:var(--text-hi);font-family:var(--font-body);font-size:16px;
+  transition:border-color .15s ease;
+}
+.chat-input-row input:focus{outline:none;border-color:var(--violet)}
+.chat-send{
+  width:42px;height:42px;border-radius:50%;background:var(--amber);color:#231602;
+  border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;
+  transition:transform .15s ease;flex-shrink:0;
+}
+.chat-send:hover{transform:scale(1.06)}
+.chat-send[disabled]{opacity:.5;cursor:not-allowed}
+
+@media(max-width:480px){
+  .chat-fab{right:16px;bottom:16px;width:54px;height:54px}
+  .chat-panel{right:8px;left:8px;bottom:82px;width:auto;height:min(70vh,560px);border-radius:18px}
+}
+
 /* ---------- mobile: bottom-sheet modal ---------- */
 @media(max-width:640px){
   .modal-overlay{align-items:flex-end;padding:0}
@@ -770,6 +839,32 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
   </div>
 </footer>
 
+<!-- ================= CHAT WIDGET ================= -->
+<button class="chat-fab" id="chatFab" type="button" aria-label="Chat with us" aria-expanded="false" aria-controls="chatPanel">
+  <span class="dot" aria-hidden="true"></span>
+  <svg class="icon-bubble" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+  </svg>
+  <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>
+</button>
+
+<div class="chat-panel" id="chatPanel" role="dialog" aria-modal="false" aria-labelledby="chatTitle" aria-hidden="true">
+  <div class="chat-head">
+    <span class="chat-title" id="chatTitle">Pip Nation Assistant</span>
+    <span class="chat-sub">Usually replies in seconds</span>
+  </div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-msg bot"><p>Hi, I'm the Pip Nation assistant. Ask about the course, pricing, the Saa Kumi window, or how to get started.</p></div>
+  </div>
+  <form class="chat-input-row" id="chatForm">
+    <input type="text" id="chatInput" name="message" placeholder="Type your question…" autocomplete="off" required>
+    <button type="submit" class="chat-send" id="chatSend" aria-label="Send">&rarr;</button>
+  </form>
+</div>
+
 <!-- ================= ENROLLMENT MODAL ================= -->
 <div class="modal-overlay" id="enrollOverlay" aria-hidden="true">
   <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="enrollTitle">
@@ -972,6 +1067,80 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
     } finally {
       submitBtn.disabled = false;
       submitBtn.innerHTML = originalLabel;
+    }
+  });
+})();
+
+/* ================= CHAT WIDGET ================= */
+(function(){
+  // Replace with your webhook URL (n8n, Make, etc.). It will receive
+  // { message, history } as JSON and should respond with { reply: "..." }.
+  const CHAT_WEBHOOK_URL = 'https://your-webhook-url-here';
+
+  const fab      = document.getElementById('chatFab');
+  const panel    = document.getElementById('chatPanel');
+  const messages = document.getElementById('chatMessages');
+  const form     = document.getElementById('chatForm');
+  const input    = document.getElementById('chatInput');
+  const sendBtn  = document.getElementById('chatSend');
+  let history = [];
+
+  function toggle(){
+    const open = panel.classList.toggle('open');
+    fab.setAttribute('aria-expanded', open ? 'true' : 'false');
+    panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if (open) setTimeout(() => input.focus(), 200);
+  }
+  fab.addEventListener('click', toggle);
+
+  function addMessage(role, text){
+    const div = document.createElement('div');
+    div.className = 'chat-msg ' + role;
+    const p = document.createElement('p');
+    p.textContent = text;
+    div.appendChild(p);
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+  }
+
+  function addTyping(){
+    const div = document.createElement('div');
+    div.className = 'chat-msg bot typing';
+    div.innerHTML = '<span class="typing-dots"><span></span><span></span><span></span></span>';
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+  }
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+
+    addMessage('user', text);
+    history.push({ role: 'user', content: text });
+    input.value = '';
+    sendBtn.disabled = true;
+    const typingEl = addTyping();
+
+    try{
+      const res = await fetch(CHAT_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history })
+      });
+      const data = await res.json();
+      typingEl.remove();
+      const reply = data.reply || data.output || data.message;
+      if (!res.ok || !reply) throw new Error('bad response');
+      addMessage('bot', reply);
+      history.push({ role: 'assistant', content: reply });
+    }catch(err){
+      typingEl.remove();
+      addMessage('bot', "Sorry, I couldn't reach the assistant just now. Try again in a moment, or message us on Telegram.");
+    }finally{
+      sendBtn.disabled = false;
     }
   });
 })();
