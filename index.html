@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pip Nation — Learn Forex the Honest Way | Saa Kumi Trading, Nairobi</title>
 <meta name="description" content="Kenya's honest forex education. No signals, no hype — a complete self-paced course built around the Saa Kumi overlap window. CMA-aware, M-Pesa friendly.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Pip Nation — Learn Forex the Honest Way">
+<meta property="og:description" content="Kenya's honest forex education, built around the Saa Kumi (4pm–8pm) overlap window. CMA-aware, M-Pesa friendly.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Pip Nation — Learn Forex the Honest Way">
+<meta name="twitter:description" content="Kenya's honest forex education, built around the Saa Kumi (4pm–8pm) overlap window.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -58,7 +64,7 @@ body{
 a{color:inherit;text-decoration:none}
 img{max-width:100%}
 .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
-h1,h2,h3{font-family:var(--font-display);color:var(--text-hi);line-height:1.12;letter-spacing:-.01em}
+h1,h2,h3{font-family:var(--font-display);color:var(--text-hi);line-height:1.12;letter-spacing:-.01em;text-wrap:balance}
 .mono{font-family:var(--font-mono)}
 .eyebrow{
   font-family:var(--font-mono);font-size:12px;letter-spacing:.22em;
@@ -69,6 +75,13 @@ section{padding:96px 0}
 .section-head h2{font-size:clamp(30px,4.4vw,44px);font-weight:700;margin-bottom:14px}
 .section-head p{font-size:18px;color:var(--text-mid)}
 :focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
+
+.skip-link{
+  position:absolute;left:12px;top:-60px;z-index:300;
+  background:var(--amber);color:#231602;font-weight:700;font-size:14px;
+  padding:10px 18px;border-radius:8px;transition:top .2s ease;
+}
+.skip-link:focus{top:12px}
 
 /* ---------- buttons ---------- */
 .btn{
@@ -99,7 +112,31 @@ nav{
 .nav-links a:not(.btn){color:var(--text-mid);transition:color .15s}
 .nav-links a:not(.btn):hover{color:var(--text-hi)}
 .nav-links .btn{padding:10px 22px;font-size:14px}
-@media(max-width:820px){.nav-links a:not(.btn){display:none}}
+.nav-toggle{display:none;background:none;border:none;width:34px;height:34px;position:relative;cursor:pointer;padding:0;flex-shrink:0}
+.nav-toggle span,.nav-toggle::before,.nav-toggle::after{
+  content:"";position:absolute;left:6px;right:6px;height:2px;background:var(--text-hi);
+  transition:transform .25s ease,opacity .25s ease;
+}
+.nav-toggle::before{top:11px}
+.nav-toggle span{top:17px}
+.nav-toggle::after{top:23px}
+.nav-toggle[aria-expanded="true"]::before{transform:translateY(6px) rotate(45deg)}
+.nav-toggle[aria-expanded="true"] span{opacity:0}
+.nav-toggle[aria-expanded="true"]::after{transform:translateY(-6px) rotate(-45deg)}
+@media(max-width:820px){
+  .nav-toggle{display:block}
+  .nav-links{
+    position:absolute;top:68px;left:0;right:0;
+    flex-direction:column;align-items:stretch;gap:0;
+    background:rgba(13,10,20,.96);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);
+    border-bottom:1px solid var(--glass-border);
+    max-height:0;overflow:hidden;transition:max-height .3s ease;
+    padding:0 24px;
+  }
+  .nav-links.open{max-height:400px;padding:12px 24px 20px}
+  .nav-links a:not(.btn){display:block;padding:12px 0;border-bottom:1px solid var(--glass-border)}
+  .nav-links .btn{margin-top:14px;width:100%;justify-content:center}
+}
 
 /* ---------- hero / the clock ---------- */
 .hero{
@@ -132,7 +169,7 @@ nav{
   background:radial-gradient(420px 200px at 50% -40px,rgba(245,165,36,.16),transparent 70%);
 }
 @keyframes floatCard{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-.clock-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.clock-label{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:18px}
 .clock-label .tag{font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;color:var(--text-low);text-transform:uppercase}
 .status-chip{
   display:inline-flex;align-items:center;gap:8px;
@@ -345,7 +382,7 @@ nav{
 footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink-1)}
 .foot-grid{display:flex;justify-content:space-between;gap:32px;flex-wrap:wrap;margin-bottom:34px}
 .foot-grid .logo{font-size:18px}
-.foot-links{display:flex;gap:26px;font-size:14px;color:var(--text-low)}
+.foot-links{display:flex;flex-wrap:wrap;gap:12px 24px;font-size:14px;color:var(--text-low)}
 .foot-links a:hover{color:var(--text-hi)}
 .disclaimer{
   font-size:12.5px;color:var(--text-low);line-height:1.7;max-width:860px;
@@ -384,7 +421,7 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
 .field label{display:block;font-size:12.5px;color:var(--text-low);margin-bottom:6px;font-family:var(--font-mono);letter-spacing:.05em}
 .field input{
   width:100%;background:rgba(255,255,255,.045);border:1px solid var(--glass-border);
-  border-radius:10px;padding:12px 14px;color:var(--text-hi);font-family:var(--font-body);font-size:15px;
+  border-radius:10px;padding:12px 14px;color:var(--text-hi);font-family:var(--font-body);font-size:16px;
   transition:border-color .15s ease,background .15s ease;
 }
 .field input:focus{outline:none;border-color:var(--violet);background:rgba(255,255,255,.07)}
@@ -400,15 +437,48 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
   display:inline-block;animation:spin .7s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- mobile: bottom-sheet modal ---------- */
+@media(max-width:640px){
+  .modal-overlay{align-items:flex-end;padding:0}
+  .modal-box{
+    max-width:100%;width:100%;border-radius:20px 20px 0 0;
+    transform:translateY(100%);
+  }
+  .modal-overlay.open .modal-box{transform:translateY(0)}
+}
+
+/* ---------- mobile: compact spacing pass ---------- */
+@media(max-width:640px){
+  section{padding:56px 0}
+  .section-head{margin-bottom:32px}
+  .hero{padding:104px 0 56px}
+  .hero-ctas{flex-direction:column;align-items:stretch}
+  .hero-ctas .btn{width:100%}
+  .clock-card{padding:24px 20px}
+  .trust-item{padding:20px 18px}
+  .against-card{padding:24px 20px}
+  .mod-card{padding:20px 18px}
+  .price-card{padding:26px 22px}
+  .modal-box{padding:26px 20px 24px}
+  .curriculum-grid,.against-grid,.pricing-grid{gap:16px}
+  .big-time{font-size:42px}
+  .price-amount .val{font-size:36px}
+}
+@media(max-width:380px){
+  .big-time{font-size:36px}
+}
 </style>
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 
 <!-- ================= NAV ================= -->
 <nav>
   <div class="wrap nav-inner">
     <a class="logo" href="#top">PIP<span>NATION</span>.KE</a>
-    <div class="nav-links">
+    <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navMenu" aria-label="Toggle menu"><span></span></button>
+    <div class="nav-links" id="navMenu">
       <a href="#curriculum">Curriculum</a>
       <a href="#saakumi">Saa Kumi</a>
       <a href="#pricing">Pricing</a>
@@ -462,6 +532,7 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
   </div>
 </header>
 
+<main id="main">
 <!-- ================= TRUST STRIP ================= -->
 <div class="trust">
   <div class="wrap">
@@ -677,6 +748,7 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
     <a class="btn btn-amber" href="#pricing" style="font-size:17px;padding:17px 38px">Choose your lot size</a>
   </div>
 </section>
+</main>
 
 <!-- ================= FOOTER ================= -->
 <footer>
@@ -784,6 +856,20 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
   }
   tick();
   setInterval(tick, 1000);
+})();
+
+/* ================= MOBILE NAV ================= */
+(function(){
+  const toggle = document.getElementById('navToggle');
+  const menu = document.getElementById('navMenu');
+  toggle.addEventListener('click', () => {
+    const open = menu.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  menu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+    menu.classList.remove('open');
+    toggle.setAttribute('aria-expanded', 'false');
+  }));
 })();
 
 /* ================= FAQ ACCORDION ================= */
