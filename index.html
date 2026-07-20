@@ -932,11 +932,15 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
       </div>
       <button class="btn btn-amber modal-submit" type="submit" id="enrollSubmit">Pay with M-Pesa</button>
       <p class="modal-status" id="enrollStatus"></p>
-      <p class="modal-note">You'll get an M-Pesa prompt on your phone — enter your PIN to complete payment.</p>
+      <p class="modal-note">A secure M-Pesa payment window will open — enter your PIN there to complete payment.</p>
     </form>
   </div>
+  <!-- PayHero SDK renders its own button here; kept off-screen since we
+       trigger payment programmatically via PayHero.pay() instead. -->
+  <div id="payHeroContainer" style="position:absolute;width:0;height:0;overflow:hidden"></div>
 </div>
 
+<script src="https://applet.payherokenya.com/cdn/button_sdk.js"></script>
 <script>
 /* ================= SAA KUMI CLOCK ENGINE ================= */
 (function(){
@@ -1048,16 +1052,22 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
   const submitBtn = document.getElementById('enrollSubmit');
   const status    = document.getElementById('enrollStatus');
   let lastFocused = null;
-  let pollTimer = null;
-  let pollDeadline = null;
+  let currentTier = '';
 
-  function stopPolling(){
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-    pollDeadline = null;
+  // PayHero's Payment Button SDK renders its own button into this hidden
+  // container; we never show that button and instead trigger the payment
+  // step ourselves via PayHero.pay(), keeping our own modal as the entry
+  // point. Leaving successUrl/failedUrl blank stops it from redirecting
+  // the page — it just dispatches window events instead (see below).
+  if (window.PayHero) {
+    PayHero.init({
+      paymentUrl: 'https://lipwa.link/10976',
+      containerId: 'payHeroContainer',
+      channelID: 10663
+    });
   }
 
   function openModal(tier, price){
-    stopPolling();
     tierIn.value = tier;
     priceIn.value = price;
     tierLabel.textContent = tier + ' · KES ' + Number(price).toLocaleString();
@@ -1072,7 +1082,6 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
     setTimeout(() => nameIn.focus(), 60);
   }
   function closeModal(){
-    stopPolling();
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden','true');
     if (lastFocused) lastFocused.focus();
@@ -1091,47 +1100,15 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
     status.textContent = text;
     status.className = 'modal-status show' + (kind ? ' ' + kind : '');
   }
-
-  function pollPayment(reference, payload){
-    pollDeadline = Date.now() + 65000;
-    pollTimer = setInterval(async () => {
-      if (Date.now() > pollDeadline){
-        stopPolling();
-        setStatus('Still waiting on the M-Pesa prompt. If you entered your PIN, give it a moment and check your phone — otherwise try again.', 'err');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Pay with M-Pesa';
-        return;
-      }
-      try{
-        const res = await fetch('/api/payment-status?reference=' + encodeURIComponent(reference));
-        const data = await res.json();
-        if (data.status === 'SUCCESS'){
-          stopPolling();
-          setStatus('Payment received — welcome to ' + payload.tier + '! Check your email for access.', 'ok');
-          fetch('/api/submit-lead', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          }).catch(() => {});
-          form.reset();
-          setTimeout(closeModal, 3200);
-        } else if (data.status === 'FAILED'){
-          stopPolling();
-          setStatus('Payment failed or was cancelled. You can try again.', 'err');
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Pay with M-Pesa';
-        }
-        // status "QUEUED" -> keep polling
-      } catch(err){
-        // transient network hiccup — keep polling until deadline
-      }
-    }, 4000);
+  function resetSubmit(){
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Pay with M-Pesa';
   }
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span> Sending M-Pesa prompt…';
+    submitBtn.innerHTML = '<span class="spinner"></span> Preparing checkout…';
     setStatus('', '');
 
     const payload = {
@@ -1141,6 +1118,7 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
       tier: tierIn.value,
       price: priceIn.value
     };
+    currentTier = payload.tier;
 
     try{
       const res = await fetch('/api/initiate-payment', {
@@ -1149,16 +1127,42 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
         body: JSON.stringify(payload)
       });
       const data = await res.json();
-      if (!res.ok || !data.reference) throw new Error(data.error || 'Request failed');
+      if (!res.ok || !data.externalReference) throw new Error(data.error || 'Request failed');
 
-      submitBtn.innerHTML = '<span class="spinner"></span> Check your phone…';
-      setStatus('We sent an M-Pesa prompt to ' + payload.phone + '. Enter your PIN to complete payment.', 'wait');
-      pollPayment(data.reference, payload);
+      if (!window.PayHero) throw new Error('Payment widget failed to load');
+
+      setStatus('Opening secure M-Pesa checkout…', 'wait');
+      PayHero.pay({
+        amount: payload.price,
+        reference: data.externalReference,
+        phone: data.phone || payload.phone,
+        name: payload.name
+      });
+      submitBtn.innerHTML = 'Pay with M-Pesa';
     } catch(err){
-      setStatus('Could not start the M-Pesa payment. Please check your number and try again.', 'err');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Pay with M-Pesa';
+      setStatus('Could not start checkout. Please check your details and try again.', 'err');
+      resetSubmit();
     }
+  });
+
+  // PayHero's SDK dispatches these on `window` once the embedded checkout
+  // resolves (see button_sdk.js — setupPaymentMessageListener /
+  // handleIframeNavigation). We don't set successUrl/failedUrl, so it
+  // never navigates the page away; it just fires these events.
+  window.addEventListener('payherosuccess', () => {
+    setStatus('Payment received — welcome to ' + (currentTier || 'Pip Nation') + '! Check your email for access.', 'ok');
+    form.reset();
+    setTimeout(closeModal, 3200);
+  });
+  window.addEventListener('payherofailed', () => {
+    setStatus('Payment failed or was cancelled. You can try again.', 'err');
+    resetSubmit();
+  });
+  window.addEventListener('payheroclosed', () => {
+    // User closed PayHero's checkout without a definite result yet —
+    // leave the status as-is (n8n will reconcile server-side either way)
+    // but let them retry from our modal.
+    resetSubmit();
   });
 })();
 

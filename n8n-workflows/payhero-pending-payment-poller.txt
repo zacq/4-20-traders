@@ -1,0 +1,155 @@
+{
+  "name": "PayHero Pending Payment Poller",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Setup before activating\n\n1. In n8n: Settings -> Environment Variables, add (if not already set from the webhook workflow):\n   - AIRTABLE_TOKEN = your Airtable personal access token\n   - PAYHERO_BASIC_AUTH_TOKEN = the full value including \"Basic \" prefix, e.g. \"Basic Rn...==\" (from PayHero dashboard -> API Keys)\n\n2. This is the reliability backstop: it runs every 5 minutes, finds any signup still marked 'Pending', asks PayHero directly for that transaction's real status, and updates Airtable. Use this alongside the webhook workflow (not instead of it) -- it catches anything the webhook callback misses or that resolved while nobody was watching.\n\n3. Records older than 24 hours are skipped automatically (treated as abandoned) so this doesn't poll forever on dead attempts. Adjust the '24' in the 'Prepare Filter' code node if you want a different window.",
+        "height": 340,
+        "width": 460
+      },
+      "id": "note1",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-200, 0]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "minutes", "minutesInterval": 5 }
+          ]
+        }
+      },
+      "id": "schedule1",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [300, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();\nconst formula = `AND({Payment Status} = \"Pending\", IS_AFTER(CREATED_TIME(), DATETIME_PARSE(\"${cutoff}\")))`;\nreturn [{ json: { filterByFormula: formula } }];"
+      },
+      "id": "code0",
+      "name": "Prepare Filter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.airtable.com/v0/app19rrcmc7b9aecC/tblTiFOX1T1oNjbDY",
+        "authentication": "none",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "filterByFormula", "value": "={{ $json.filterByFormula }}" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.AIRTABLE_TOKEN }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http1",
+      "name": "List Pending Signups",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [740, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json;\nconst records = response.records || [];\n\nreturn records\n  .filter(r => r.fields['External Reference'])\n  .map(r => ({\n    json: {\n      recordId: r.id,\n      externalReference: r.fields['External Reference']\n    }\n  }));"
+      },
+      "id": "code1",
+      "name": "Split Pending Records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://backend.payhero.co.ke/api/v2/transaction-status?reference={{ $json.externalReference }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ $env.PAYHERO_BASIC_AUTH_TOKEN }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http2",
+      "name": "Check PayHero Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1180, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const statusItems = $input.all();\nconst splitItems = $('Split Pending Records').all();\nconst output = [];\n\nstatusItems.forEach((item, i) => {\n  const status = String(item.json.status || '').toUpperCase();\n  const split = splitItems[i].json;\n\n  let fields;\n  if (status === 'SUCCESS') {\n    fields = {\n      'Payment Status': 'Paid',\n      'Provider Reference': item.json.payment_reference || item.json.provider_reference || '',\n      'Paid At': item.json.transaction_date || new Date().toISOString(),\n      'Status': 'Paid'\n    };\n  } else if (status === 'FAILED') {\n    fields = { 'Payment Status': 'Failed' };\n  } else {\n    return; // still QUEUED - check again next run\n  }\n\n  output.push({ json: { recordId: split.recordId, fields } });\n});\n\nreturn output;"
+      },
+      "id": "code2",
+      "name": "Prepare Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1400, 0]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.airtable.com/v0/app19rrcmc7b9aecC/tblTiFOX1T1oNjbDY/{{ $json.recordId }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.AIRTABLE_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"fields\": $json.fields } }}",
+        "options": {}
+      },
+      "id": "http3",
+      "name": "Update Airtable Record",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1620, 0]
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes": {
+      "main": [[{ "node": "Prepare Filter", "type": "main", "index": 0 }]]
+    },
+    "Prepare Filter": {
+      "main": [[{ "node": "List Pending Signups", "type": "main", "index": 0 }]]
+    },
+    "List Pending Signups": {
+      "main": [[{ "node": "Split Pending Records", "type": "main", "index": 0 }]]
+    },
+    "Split Pending Records": {
+      "main": [[{ "node": "Check PayHero Status", "type": "main", "index": 0 }]]
+    },
+    "Check PayHero Status": {
+      "main": [[{ "node": "Prepare Update", "type": "main", "index": 0 }]]
+    },
+    "Prepare Update": {
+      "main": [[{ "node": "Update Airtable Record", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}

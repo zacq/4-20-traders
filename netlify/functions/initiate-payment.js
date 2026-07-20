@@ -1,3 +1,8 @@
+// Records the signup as "Pending" in Airtable immediately, before the
+// customer completes payment in PayHero's embedded checkout (see the
+// PayHero.pay() call in index.html). This guarantees a record exists even
+// if the browser tab closes mid-payment. n8n workflows reconcile Pending
+// records to Paid/Failed via PayHero's callback + a polling backstop.
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
@@ -10,13 +15,13 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON' }) };
   }
 
-  const { name, phone, tier, price } = data;
-  if (!name || !phone || !tier || !price) {
+  const { name, email, phone, tier, price } = data;
+  if (!name || !email || !phone || !tier || !price) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing required fields' }) };
   }
 
-  const { PAYHERO_BASIC_AUTH_TOKEN, PAYHERO_CHANNEL_ID } = process.env;
-  if (!PAYHERO_BASIC_AUTH_TOKEN || !PAYHERO_CHANNEL_ID) {
+  const { AIRTABLE_TOKEN, AIRTABLE_BASE_ID, AIRTABLE_TABLE_ID } = process.env;
+  if (!AIRTABLE_TOKEN || !AIRTABLE_BASE_ID || !AIRTABLE_TABLE_ID) {
     return { statusCode: 500, body: JSON.stringify({ error: 'Server not configured' }) };
   }
 
@@ -31,33 +36,41 @@ exports.handler = async (event) => {
   const externalReference = `PIPN-${Date.now()}`;
 
   try {
-    const res = await fetch('https://backend.payhero.co.ke/api/v2/payments', {
+    const res = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_ID}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        Authorization: PAYHERO_BASIC_AUTH_TOKEN
+        Authorization: `Bearer ${AIRTABLE_TOKEN}`,
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        amount: Number(price),
-        phone_number: phoneNumber,
-        channel_id: Number(PAYHERO_CHANNEL_ID),
-        provider: 'm-pesa',
-        network_code: '63902',
-        customer_name: name,
-        external_reference: externalReference
+        records: [{
+          fields: {
+            Name: name,
+            Email: email,
+            Phone: phone,
+            Tier: tier,
+            'Price (KES)': Number(price),
+            Status: 'New',
+            Source: 'Pip Nation Landing Page',
+            'Payment Status': 'Pending',
+            'External Reference': externalReference,
+            Notes: 'Checkout opened, awaiting M-Pesa confirmation.'
+          }
+        }],
+        typecast: true
       })
     });
 
-    const body = await res.json();
     if (!res.ok) {
-      return { statusCode: res.status, body: JSON.stringify({ error: body.message || body.error || 'PayHero error' }) };
+      const body = await res.json().catch(() => ({}));
+      return { statusCode: res.status, body: JSON.stringify({ error: body.error || 'Airtable error' }) };
     }
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ ok: true, reference: body.reference, externalReference })
-    };
   } catch (err) {
-    return { statusCode: 502, body: JSON.stringify({ error: 'Failed to reach PayHero' }) };
+    return { statusCode: 502, body: JSON.stringify({ error: 'Failed to reach Airtable' }) };
   }
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ ok: true, phone: phoneNumber, externalReference })
+  };
 };
