@@ -476,6 +476,7 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
 .modal-status.show{display:block}
 .modal-status.ok{color:var(--candle-up)}
 .modal-status.err{color:var(--candle-dn)}
+.modal-status.wait{color:var(--amber)}
 .spinner{
   width:15px;height:15px;border-radius:50%;
   border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
@@ -929,9 +930,9 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
         <label for="enrollPhone">Phone (M-Pesa number)</label>
         <input type="tel" id="enrollPhone" name="phone" required autocomplete="tel" placeholder="07XX XXX XXX">
       </div>
-      <button class="btn btn-amber modal-submit" type="submit" id="enrollSubmit">Submit enrollment</button>
+      <button class="btn btn-amber modal-submit" type="submit" id="enrollSubmit">Pay with M-Pesa</button>
       <p class="modal-status" id="enrollStatus"></p>
-      <p class="modal-note">We'll reply with M-Pesa payment instructions by email or SMS within a few hours.</p>
+      <p class="modal-note">You'll get an M-Pesa prompt on your phone — enter your PIN to complete payment.</p>
     </form>
   </div>
 </div>
@@ -1047,8 +1048,16 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
   const submitBtn = document.getElementById('enrollSubmit');
   const status    = document.getElementById('enrollStatus');
   let lastFocused = null;
+  let pollTimer = null;
+  let pollDeadline = null;
+
+  function stopPolling(){
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    pollDeadline = null;
+  }
 
   function openModal(tier, price){
+    stopPolling();
     tierIn.value = tier;
     priceIn.value = price;
     tierLabel.textContent = tier + ' · KES ' + Number(price).toLocaleString();
@@ -1063,6 +1072,7 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
     setTimeout(() => nameIn.focus(), 60);
   }
   function closeModal(){
+    stopPolling();
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden','true');
     if (lastFocused) lastFocused.focus();
@@ -1077,13 +1087,52 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
     if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
   });
 
+  function setStatus(text, kind){
+    status.textContent = text;
+    status.className = 'modal-status show' + (kind ? ' ' + kind : '');
+  }
+
+  function pollPayment(reference, payload){
+    pollDeadline = Date.now() + 65000;
+    pollTimer = setInterval(async () => {
+      if (Date.now() > pollDeadline){
+        stopPolling();
+        setStatus('Still waiting on the M-Pesa prompt. If you entered your PIN, give it a moment and check your phone — otherwise try again.', 'err');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Pay with M-Pesa';
+        return;
+      }
+      try{
+        const res = await fetch('/api/payment-status?reference=' + encodeURIComponent(reference));
+        const data = await res.json();
+        if (data.status === 'SUCCESS'){
+          stopPolling();
+          setStatus('Payment received — welcome to ' + payload.tier + '! Check your email for access.', 'ok');
+          fetch('/api/submit-lead', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          }).catch(() => {});
+          form.reset();
+          setTimeout(closeModal, 3200);
+        } else if (data.status === 'FAILED'){
+          stopPolling();
+          setStatus('Payment failed or was cancelled. You can try again.', 'err');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Pay with M-Pesa';
+        }
+        // status "QUEUED" -> keep polling
+      } catch(err){
+        // transient network hiccup — keep polling until deadline
+      }
+    }, 4000);
+  }
+
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    const originalLabel = submitBtn.innerHTML;
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span> Sending…';
-    status.className = 'modal-status';
-    status.textContent = '';
+    submitBtn.innerHTML = '<span class="spinner"></span> Sending M-Pesa prompt…';
+    setStatus('', '');
 
     const payload = {
       name: nameIn.value.trim(),
@@ -1094,22 +1143,21 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
     };
 
     try{
-      const res = await fetch('/api/submit-lead', {
+      const res = await fetch('/api/initiate-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('Request failed');
-      status.textContent = 'Thanks, ' + (payload.name.split(' ')[0] || 'there') + ' — we’ll send M-Pesa payment instructions shortly.';
-      status.classList.add('show','ok');
-      form.reset();
-      setTimeout(closeModal, 2600);
+      const data = await res.json();
+      if (!res.ok || !data.reference) throw new Error(data.error || 'Request failed');
+
+      submitBtn.innerHTML = '<span class="spinner"></span> Check your phone…';
+      setStatus('We sent an M-Pesa prompt to ' + payload.phone + '. Enter your PIN to complete payment.', 'wait');
+      pollPayment(data.reference, payload);
     } catch(err){
-      status.textContent = 'Something went wrong. Please try again, or message us on Telegram.';
-      status.classList.add('show','err');
-    } finally {
+      setStatus('Could not start the M-Pesa payment. Please check your number and try again.', 'err');
       submitBtn.disabled = false;
-      submitBtn.innerHTML = originalLabel;
+      submitBtn.textContent = 'Pay with M-Pesa';
     }
   });
 })();
