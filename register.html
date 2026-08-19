@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log In — Pip Nation</title>
+<meta name="description" content="Log in or create your Pip Nation account with a one-time email code.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink-0:#0E0B16;
+  --ink-1:#161226;
+  --ink-2:#1F1A33;
+  --line:rgba(167,153,214,.14);
+  --text-hi:#F2EFFA;
+  --text-mid:#B9B0D6;
+  --text-low:#7E75A0;
+  --violet:#8B5CF6;
+  --violet-deep:#5B21B6;
+  --amber:#F5A524;
+  --amber-soft:rgba(245,165,36,.12);
+  --candle-up:#2FBF71;
+  --candle-dn:#E5484D;
+  --radius:14px;
+  --font-display:"Bricolage Grotesque",sans-serif;
+  --font-body:"Hanken Grotesk",sans-serif;
+  --font-mono:"IBM Plex Mono",monospace;
+  --glass-bg:rgba(31,26,51,.50);
+  --glass-bg-strong:rgba(24,19,40,.72);
+  --glass-border:rgba(167,153,214,.20);
+  --glass-blur:blur(20px) saturate(160%);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:var(--ink-0);color:var(--text-mid);font-family:var(--font-body);
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh;
+}
+a{color:inherit;text-decoration:none}
+h1,h2{font-family:var(--font-display);color:var(--text-hi);letter-spacing:-.01em}
+:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
+
+.auth-shell{display:grid;grid-template-columns:1fr 1fr;min-height:100vh}
+@media(max-width:900px){.auth-shell{grid-template-columns:1fr}}
+
+.auth-hero{
+  position:relative;padding:48px;display:flex;flex-direction:column;justify-content:flex-end;
+  background:
+    radial-gradient(900px 480px at 78% 8%,rgba(245,165,36,.14),transparent 60%),
+    radial-gradient(700px 520px at 12% 30%,rgba(91,33,182,.35),transparent 65%),
+    var(--ink-1);
+  border-right:1px solid var(--line);
+}
+@media(max-width:900px){.auth-hero{display:none}}
+.auth-hero .logo{font-family:var(--font-display);font-weight:800;font-size:20px;color:var(--text-hi);position:absolute;top:40px;left:48px}
+.auth-hero .logo span{color:var(--amber)}
+.auth-hero h1{font-size:clamp(24px,3vw,34px);margin-bottom:12px;max-width:420px}
+.auth-hero h1 em{font-style:normal;color:var(--amber)}
+.auth-hero p{font-size:14px;max-width:380px;color:var(--text-mid)}
+
+.auth-side{display:flex;align-items:center;justify-content:center;padding:32px 24px}
+.auth-card{width:100%;max-width:380px}
+.auth-card .logo{
+  display:none;font-family:var(--font-display);font-weight:800;font-size:20px;color:var(--text-hi);margin-bottom:28px;
+}
+@media(max-width:900px){.auth-card .logo{display:block}}
+.auth-card .logo span{color:var(--amber)}
+
+.progress{display:flex;gap:6px;margin-bottom:24px}
+.progress i{flex:1;height:3px;border-radius:2px;background:var(--glass-border);transition:background .2s ease}
+.progress i.active{background:var(--amber)}
+
+.step-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber);display:block;margin-bottom:10px}
+.auth-card h2{font-size:24px;margin-bottom:8px}
+.auth-card .sub{font-size:14px;color:var(--text-low);margin-bottom:26px}
+.auth-card .sub strong{color:var(--text-mid);font-weight:600}
+
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12.5px;color:var(--text-low);margin-bottom:6px;font-family:var(--font-mono);letter-spacing:.05em}
+.field input{
+  width:100%;background:rgba(255,255,255,.045);border:1px solid var(--glass-border);
+  border-radius:10px;padding:12px 14px;color:var(--text-hi);font-family:var(--font-body);font-size:16px;
+  transition:border-color .15s ease,background .15s ease;
+}
+.field input:focus{outline:none;border-color:var(--violet);background:rgba(255,255,255,.07)}
+.field input#codeInput{letter-spacing:.4em;font-family:var(--font-mono);font-size:22px;text-align:center}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;
+  font-family:var(--font-body);font-weight:700;font-size:14px;
+  padding:13px 20px;border-radius:999px;border:1px solid transparent;
+  cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,background .18s ease,opacity .18s ease;
+  appearance:none;
+}
+.btn-amber{background:var(--amber);color:#231602;box-shadow:0 8px 28px rgba(245,165,36,.3)}
+.btn-amber:hover{transform:translateY(-2px);background:#ffbe4d}
+.btn[disabled]{opacity:.55;cursor:not-allowed;transform:none!important}
+
+.status{font-size:13.5px;margin-top:14px;text-align:center;display:none}
+.status.show{display:block}
+.status.ok{color:var(--candle-up)}
+.status.err{color:var(--candle-dn)}
+
+.resend-row{display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-size:13px}
+.resend-row button{background:none;border:none;color:var(--violet);font-weight:600;cursor:pointer;font-family:inherit;font-size:13px;padding:0}
+.resend-row button:disabled{color:var(--text-low);cursor:not-allowed}
+.back-link{display:inline-block;margin-top:20px;font-size:13px;color:var(--text-low)}
+.back-link:hover{color:var(--text-hi)}
+</style>
+</head>
+<body>
+
+<div class="auth-shell">
+  <div class="auth-hero">
+    <a class="logo" href="index.html">PIP<span>NATION</span>.KE</a>
+    <h1>Every weekday from 4pm, <em>Nairobi trades the overlap.</em></h1>
+    <p>Log in to pick up your course, track your progress, and get ready for the next Saa Kumi window.</p>
+  </div>
+
+  <div class="auth-side">
+    <div class="auth-card">
+      <a class="logo" href="index.html">PIP<span>NATION</span>.KE</a>
+      <div class="progress"><i id="progress1" class="active"></i><i id="progress2"></i></div>
+
+      <!-- STEP 1: email -->
+      <form id="step1" novalidate>
+        <span class="step-label">Step 1 of 2 — Your email</span>
+        <h2>Log in or sign up</h2>
+        <p class="sub">No password needed — we'll email you a one-time code.</p>
+
+        <div class="field">
+          <label for="nameInput">Full name (optional)</label>
+          <input type="text" id="nameInput" name="name" autocomplete="name">
+        </div>
+        <div class="field">
+          <label for="emailInput">Email</label>
+          <input type="email" id="emailInput" name="email" required autocomplete="email">
+        </div>
+
+        <button class="btn btn-amber" type="submit" id="sendCodeBtn">Send code</button>
+        <p class="status" id="step1Status"></p>
+      </form>
+
+      <!-- STEP 2: code -->
+      <form id="step2" novalidate style="display:none">
+        <span class="step-label">Step 2 of 2 — Enter your code</span>
+        <h2>Check your inbox</h2>
+        <p class="sub">We sent a 6-digit code to <strong id="emailDisplay"></strong></p>
+
+        <div class="field">
+          <label for="codeInput">Verification code</label>
+          <input type="text" id="codeInput" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autocomplete="one-time-code">
+        </div>
+
+        <button class="btn btn-amber" type="submit" id="verifyBtn">Verify &amp; continue</button>
+        <p class="status" id="step2Status"></p>
+
+        <div class="resend-row">
+          <span id="resendLabel">Didn't get it?</span>
+          <button type="button" id="resendBtn">Resend code</button>
+        </div>
+        <a class="back-link" href="#" id="backLink">&larr; Use a different email</a>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const step1 = document.getElementById('step1');
+  const step2 = document.getElementById('step2');
+  const progress1 = document.getElementById('progress1');
+  const progress2 = document.getElementById('progress2');
+  const step1Status = document.getElementById('step1Status');
+  const step2Status = document.getElementById('step2Status');
+  const sendCodeBtn = document.getElementById('sendCodeBtn');
+  const verifyBtn = document.getElementById('verifyBtn');
+  const resendBtn = document.getElementById('resendBtn');
+  const emailDisplay = document.getElementById('emailDisplay');
+  const backLink = document.getElementById('backLink');
+
+  let currentEmail = '';
+  let currentName = '';
+  let resendTimer = null;
+
+  function setStatus(el, message, type){
+    el.textContent = message;
+    el.className = 'status show' + (type ? ' ' + type : '');
+  }
+  function clearStatus(el){
+    el.textContent = '';
+    el.className = 'status';
+  }
+
+  function startResendCooldown(seconds){
+    clearInterval(resendTimer);
+    let remaining = seconds;
+    resendBtn.disabled = true;
+    resendBtn.textContent = 'Resend in ' + remaining + 's';
+    resendTimer = setInterval(function(){
+      remaining -= 1;
+      if (remaining <= 0){
+        clearInterval(resendTimer);
+        resendBtn.disabled = false;
+        resendBtn.textContent = 'Resend code';
+      } else {
+        resendBtn.textContent = 'Resend in ' + remaining + 's';
+      }
+    }, 1000);
+  }
+
+  async function requestOtp(name, email){
+    const res = await fetch('/api/request-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, email: email })
+    });
+    const data = await res.json().catch(function(){ return {}; });
+    if (!res.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
+    return data;
+  }
+
+  step1.addEventListener('submit', function(e){
+    e.preventDefault();
+    clearStatus(step1Status);
+    const name = document.getElementById('nameInput').value.trim();
+    const email = document.getElementById('emailInput').value.trim();
+    if (!email) return;
+
+    sendCodeBtn.disabled = true;
+    sendCodeBtn.textContent = 'Sending…';
+
+    requestOtp(name, email).then(function(){
+      currentEmail = email;
+      currentName = name;
+      emailDisplay.textContent = email;
+      step1.style.display = 'none';
+      step2.style.display = '';
+      progress1.classList.remove('active');
+      progress2.classList.add('active');
+      startResendCooldown(45);
+    }).catch(function(err){
+      setStatus(step1Status, err.message, 'err');
+    }).finally(function(){
+      sendCodeBtn.disabled = false;
+      sendCodeBtn.textContent = 'Send code';
+    });
+  });
+
+  step2.addEventListener('submit', function(e){
+    e.preventDefault();
+    clearStatus(step2Status);
+    const code = document.getElementById('codeInput').value.trim();
+    if (!code) return;
+
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verifying…';
+
+    fetch('/api/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentEmail, code: code })
+    }).then(function(res){
+      return res.json().then(function(data){
+        if (!res.ok) throw new Error(data.error || 'Invalid code');
+        return data;
+      });
+    }).then(function(){
+      setStatus(step2Status, 'Verified — redirecting…', 'ok');
+      window.location.href = 'dashboard.html';
+    }).catch(function(err){
+      setStatus(step2Status, err.message, 'err');
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = 'Verify & continue';
+    });
+  });
+
+  resendBtn.addEventListener('click', function(){
+    if (resendBtn.disabled) return;
+    clearStatus(step2Status);
+    requestOtp(currentName, currentEmail).then(function(){
+      setStatus(step2Status, 'Code resent — check your inbox.', 'ok');
+      startResendCooldown(45);
+    }).catch(function(err){
+      setStatus(step2Status, err.message, 'err');
+    });
+  });
+
+  backLink.addEventListener('click', function(e){
+    e.preventDefault();
+    clearInterval(resendTimer);
+    step2.style.display = 'none';
+    step1.style.display = '';
+    progress2.classList.remove('active');
+    progress1.classList.add('active');
+    clearStatus(step2Status);
+  });
+})();
+</script>
+</body>
+</html>

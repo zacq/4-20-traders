@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Pip Nation</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink-0:#0E0B16;
+  --ink-1:#161226;
+  --ink-2:#1F1A33;
+  --line:rgba(167,153,214,.14);
+  --text-hi:#F2EFFA;
+  --text-mid:#B9B0D6;
+  --text-low:#7E75A0;
+  --violet:#8B5CF6;
+  --violet-deep:#5B21B6;
+  --amber:#F5A524;
+  --amber-soft:rgba(245,165,36,.12);
+  --candle-up:#2FBF71;
+  --candle-dn:#E5484D;
+  --radius:14px;
+  --font-display:"Bricolage Grotesque",sans-serif;
+  --font-body:"Hanken Grotesk",sans-serif;
+  --font-mono:"IBM Plex Mono",monospace;
+  --glass-border:rgba(167,153,214,.20);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:var(--ink-0);color:var(--text-mid);font-family:var(--font-body);
+  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+h1,h2{font-family:var(--font-display);color:var(--text-hi);letter-spacing:-.01em}
+:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
+
+/* hide real content until the /api/me check resolves */
+body.auth-pending .shell{visibility:hidden}
+.auth-loading{display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:var(--ink-0);font-family:var(--font-mono);color:var(--text-low);font-size:13px;letter-spacing:.1em;text-transform:uppercase}
+body.auth-pending .auth-loading{display:flex}
+
+.shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+@media(max-width:800px){.shell{grid-template-columns:1fr}}
+
+.sidebar{
+  background:var(--ink-1);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;padding:24px 18px;position:sticky;top:0;height:100vh;
+}
+@media(max-width:800px){.sidebar{position:static;height:auto}}
+.sidebar .logo{font-family:var(--font-display);font-weight:800;font-size:19px;color:var(--text-hi);padding:0 8px;margin-bottom:28px}
+.sidebar .logo span{color:var(--amber)}
+
+.nav-group{margin-bottom:4px}
+.nav-link{
+  display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;
+  color:var(--text-mid);font-size:14px;font-weight:600;margin-bottom:2px;transition:background .15s ease,color .15s ease;
+}
+.nav-link:hover{background:rgba(255,255,255,.04);color:var(--text-hi)}
+.nav-link.active{background:var(--amber-soft);color:var(--amber)}
+.nav-link .ic{width:18px;text-align:center;flex-shrink:0}
+.nav-spacer{flex:1}
+
+.sidebar-user{
+  border-top:1px solid var(--line);padding-top:16px;margin-top:12px;
+  display:flex;align-items:center;gap:10px;
+}
+.avatar{
+  width:34px;height:34px;border-radius:50%;background:var(--violet);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;
+}
+.sidebar-user .who{overflow:hidden}
+.sidebar-user .who .name{color:var(--text-hi);font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-user .who .email{font-size:12px;color:var(--text-low);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logout-btn{
+  background:none;border:1px solid var(--glass-border);color:var(--text-low);
+  border-radius:8px;padding:8px 10px;font-size:12.5px;font-weight:600;cursor:pointer;
+  margin-top:12px;width:100%;font-family:inherit;transition:border-color .15s ease,color .15s ease;
+}
+.logout-btn:hover{border-color:var(--candle-dn);color:var(--candle-dn)}
+
+.main{padding:36px 40px}
+@media(max-width:600px){.main{padding:24px 20px}}
+.breadcrumb{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;color:var(--text-low);text-transform:uppercase;margin-bottom:8px}
+.main h1{font-size:26px;margin-bottom:6px}
+.main .lead{font-size:14.5px;color:var(--text-mid);margin-bottom:32px}
+
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.card{
+  background:var(--ink-2);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px;
+}
+.card h3{font-family:var(--font-display);color:var(--text-hi);font-size:15px;margin-bottom:6px}
+.card p{font-size:13px;color:var(--text-low)}
+.card .tag{
+  display:inline-block;font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--amber);background:var(--amber-soft);
+  padding:3px 9px;border-radius:999px;margin-bottom:12px;
+}
+</style>
+</head>
+<body class="auth-pending">
+
+<div class="auth-loading">Loading your dashboard…</div>
+
+<div class="shell">
+  <aside class="sidebar">
+    <a class="logo" href="index.html">PIP<span>NATION</span>.KE</a>
+
+    <nav class="nav-group">
+      <a class="nav-link active" href="#"><span class="ic">&#8962;</span> Home</a>
+      <a class="nav-link" href="#"><span class="ic">&#128218;</span> My Course</a>
+      <a class="nav-link" href="#"><span class="ic">&#128337;</span> Saa Kumi Program</a>
+      <a class="nav-link" href="#"><span class="ic">&#128172;</span> Community</a>
+      <a class="nav-link" href="#"><span class="ic">&#128179;</span> Payments</a>
+      <a class="nav-link" href="#"><span class="ic">&#128100;</span> Profile</a>
+      <a class="nav-link" href="#"><span class="ic">&#9881;</span> Settings</a>
+      <a class="nav-link" href="#"><span class="ic">&#128196;</span> Legal Documents</a>
+    </nav>
+
+    <div class="nav-spacer"></div>
+
+    <div class="sidebar-user">
+      <div class="avatar" id="userAvatar">?</div>
+      <div class="who">
+        <div class="name" id="userName">—</div>
+        <div class="email" id="userEmail">—</div>
+      </div>
+    </div>
+    <button class="logout-btn" id="logoutBtn" type="button">Log out</button>
+  </aside>
+
+  <main class="main">
+    <span class="breadcrumb">Home</span>
+    <h1 id="welcomeHeading">Welcome back</h1>
+    <p class="lead">Here's a quick look at your Pip Nation account.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <span class="tag">Coming soon</span>
+        <h3>My Course</h3>
+        <p>Your self-paced curriculum and lesson progress will show up here.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Coming soon</span>
+        <h3>Saa Kumi Program</h3>
+        <p>Live session schedules and overlap-window drills, tracked in one place.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Coming soon</span>
+        <h3>Payments</h3>
+        <p>Your enrollment and payment history will appear here.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  fetch('/api/me').then(function(res){
+    if (!res.ok) throw new Error('unauthorized');
+    return res.json();
+  }).then(function(data){
+    var user = data.user || {};
+    var name = user.name || 'Member';
+    var email = user.email || '';
+    document.getElementById('userName').textContent = name;
+    document.getElementById('userEmail').textContent = email;
+    document.getElementById('welcomeHeading').textContent = 'Welcome back, ' + name.split(' ')[0];
+    document.getElementById('userAvatar').textContent = name.trim().charAt(0).toUpperCase() || '?';
+    document.body.classList.remove('auth-pending');
+  }).catch(function(){
+    window.location.replace('register.html');
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', function(){
+    fetch('/api/logout', { method: 'POST' }).finally(function(){
+      window.location.href = 'index.html';
+    });
+  });
+})();
+</script>
+</body>
+</html>
