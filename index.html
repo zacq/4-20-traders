@@ -102,9 +102,11 @@ section{padding:52px 0}
 /* ---------- nav ---------- */
 nav{
   position:fixed;top:0;left:0;right:0;z-index:100;
-  background:rgba(14,11,22,.68);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);
-  border-bottom:1px solid var(--glass-border);
+  background:transparent;border-bottom:1px solid transparent;
+  backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);
+  transition:background .4s ease,border-color .4s ease;
 }
+nav.scrolled{background:rgba(14,11,22,.68);border-bottom-color:var(--glass-border)}
 .nav-inner{display:flex;align-items:center;justify-content:space-between;height:68px}
 .logo{font-family:var(--font-display);font-weight:800;font-size:20px;color:var(--text-hi)}
 .logo span{color:var(--amber)}
@@ -198,6 +200,21 @@ nav{
 }
 .countdown-row .cd-label{font-size:13px;color:var(--text-low);text-transform:uppercase;letter-spacing:.12em;font-family:var(--font-mono)}
 .countdown-row .cd-value{font-family:var(--font-mono);font-size:26px;color:var(--amber);font-variant-numeric:tabular-nums}
+
+/* second clock: New York, tied to the Saa Kumi thesis — this is the market that opens inside the window */
+.ny-row{
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+  margin-top:18px;padding-top:16px;border-top:1px solid var(--glass-border);
+  font-family:var(--font-mono);
+}
+.ny-dot{width:7px;height:7px;border-radius:50%;background:var(--text-low);flex-shrink:0;transition:background .3s ease}
+.ny-dot.live{background:var(--candle-up);box-shadow:0 0 8px var(--candle-up);animation:pulse 1.6s infinite}
+.ny-label{font-size:11px;text-transform:uppercase;letter-spacing:.16em;color:var(--text-low)}
+.ny-time{font-size:14px;color:var(--text-hi);font-variant-numeric:tabular-nums}
+.ny-status{margin-left:auto;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.ny-status.live{color:var(--candle-up)}
+.ny-status.wait{color:var(--amber)}
+.ny-status.closed{color:var(--text-low)}
 
 /* session timeline bar */
 .session-bar{margin-top:26px}
@@ -353,6 +370,40 @@ nav{
 .price-card-close:hover{color:var(--text-hi)}
 .pricing-backdrop{display:none;position:fixed;inset:0;background:rgba(8,6,14,.65);backdrop-filter:blur(4px);z-index:250}
 .pricing-backdrop.show{display:block}
+
+/* ---------- risk / position-size calculator ---------- */
+.risk-calc{
+  max-width:900px;margin:48px auto 0;border-radius:20px;overflow:hidden;
+  background:var(--ink-2);border:1px solid var(--glass-border);
+  display:grid;grid-template-columns:1.1fr .9fr;
+}
+@media(max-width:760px){.risk-calc{grid-template-columns:1fr}}
+.risk-calc-inputs{padding:clamp(24px,4vw,36px)}
+.risk-calc-inputs h3{font-size:22px;margin-bottom:22px}
+.risk-calc-inputs .eyebrow{margin-bottom:6px;display:block}
+.risk-calc-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field select{
+  width:100%;background:rgba(255,255,255,.045);border:1px solid var(--glass-border);
+  border-radius:10px;padding:12px 14px;color:var(--text-hi);font-family:var(--font-body);font-size:15px;
+  transition:border-color .15s ease,background .15s ease;
+}
+.field select:focus{outline:none;border-color:var(--violet);background:rgba(255,255,255,.07)}
+.risk-calc-output{
+  padding:clamp(24px,4vw,36px);background:var(--ink-0);
+  border-left:1px solid var(--glass-border);display:flex;flex-direction:column;justify-content:center;
+}
+@media(max-width:760px){.risk-calc-output{border-left:none;border-top:1px solid var(--glass-border)}}
+.rc-out-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-low)}
+.rc-out-amount{font-family:var(--font-display);font-weight:700;font-size:clamp(34px,5vw,44px);color:var(--amber);line-height:1;margin:8px 0 20px}
+.rc-out-row{display:flex;justify-content:space-between;padding:12px 0;border-top:1px solid var(--glass-border);font-size:14px;color:var(--text-mid)}
+.rc-out-row span:last-child{font-family:var(--font-mono);color:var(--text-hi)}
+.rc-out-row.highlight span:last-child{color:var(--candle-up);font-size:16px;font-weight:600}
+.rc-note{font-size:11.5px;color:var(--text-low);margin-top:16px;line-height:1.5}
+.rc-warning{
+  margin-top:16px;padding:12px 14px;border-radius:10px;
+  background:var(--amber-soft);border:1px solid rgba(245,165,36,.35);
+  font-size:12.5px;line-height:1.5;color:var(--amber);display:flex;gap:9px;
+}
 
 /* ---------- compact side-by-side pricing tiles (tablet/phone) ---------- */
 @media(max-width:900px){
@@ -624,6 +675,12 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
         <span class="cd-label" id="cdLabel">Next window in</span>
         <span class="cd-value" id="cdValue">--:--:--</span>
       </div>
+      <div class="ny-row">
+        <span class="ny-dot" id="nyDot"></span>
+        <span class="ny-label">New York</span>
+        <span class="ny-time" id="nyTime">--:--</span>
+        <span class="ny-status" id="nyStatusText">--</span>
+      </div>
       <div class="session-bar" aria-hidden="true">
         <div class="sb-track">
           <div class="sb-seg london" style="left:45.83%;width:35.42%"></div>
@@ -812,6 +869,43 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
       </div>
     </div>
     <p class="pricing-foot"><span class="mono">✓</span> Pay via M-Pesa or card &nbsp;·&nbsp; <span class="mono">✓</span> Instant platform access after payment &nbsp;·&nbsp; <span class="mono">✓</span> 7-day money-back guarantee</p>
+
+    <!-- ============ RISK / POSITION-SIZE CALCULATOR ============ -->
+    <div class="risk-calc">
+      <div class="risk-calc-inputs">
+        <span class="eyebrow">Position sizer</span>
+        <h3>Size before you look at price.</h3>
+        <div class="field">
+          <label for="rcAccount">Account size (USD)</label>
+          <input type="number" id="rcAccount" min="0" value="1000">
+        </div>
+        <div class="field">
+          <label for="rcRisk">Risk per trade (%)</label>
+          <input type="number" id="rcRisk" min="0" step="0.1" value="1">
+        </div>
+        <div class="risk-calc-row">
+          <div class="field">
+            <label for="rcInstrument">Instrument</label>
+            <select id="rcInstrument">
+              <option value="gold">Gold · pips</option>
+              <option value="nas">Nasdaq · points</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="rcStop">Stop (<span id="rcStopUnit">pips</span>)</label>
+            <input type="number" id="rcStop" min="0" value="50">
+          </div>
+        </div>
+      </div>
+      <div class="risk-calc-output">
+        <span class="rc-out-label">Risk this trade</span>
+        <div class="rc-out-amount" id="rcRiskAmount">$10.00</div>
+        <div class="rc-out-row"><span>Value per <span id="rcStopUnitSingular">pip</span></span><span id="rcPerUnit">$0.20</span></div>
+        <div class="rc-out-row highlight"><span>Suggested size</span><span id="rcLots">0.02 lots</span></div>
+        <p class="rc-warning" id="rcWarning" hidden><span>!</span><span>Risk above 2% breaks the framework. A single window trade should never put more than 2% at stake.</span></p>
+        <p class="rc-note">Pip/point values are standard-lot estimates — confirm your own broker's exact contract spec before sizing a real trade.</p>
+      </div>
+    </div>
   </div>
   <div class="pricing-backdrop" id="pricingBackdrop"></div>
 </section>
@@ -952,6 +1046,9 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
   const $cdL  = document.getElementById('cdLabel');
   const $cdV  = document.getElementById('cdValue');
   const $now  = document.getElementById('sbNow');
+  const $nyDot = document.getElementById('nyDot');
+  const $nyTime = document.getElementById('nyTime');
+  const $nyStx = document.getElementById('nyStatusText');
 
   function nairobiNow(){
     // EAT = UTC+3, no DST
@@ -974,9 +1071,44 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
     return d;
   }
 
+  function nyInfo(){
+    // New York's own cash-open (09:30 ET) always falls inside the Saa Kumi
+    // window — this is the clock that explains *why* the window exists.
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York', hour12: false,
+      hour: '2-digit', minute: '2-digit', weekday: 'short'
+    }).formatToParts(new Date());
+    let h = 0, m = 0, wd = 'Mon';
+    parts.forEach(p => {
+      if (p.type === 'hour') h = +p.value % 24;
+      if (p.type === 'minute') m = +p.value;
+      if (p.type === 'weekday') wd = p.value;
+    });
+    const sod = h*3600 + m*60;
+    const weekend = (wd === 'Sat' || wd === 'Sun');
+    const isOpen = !weekend && sod >= 9*3600+30*60 && sod < 16*3600;
+    return { h, m, weekend, isOpen };
+  }
+
   function tick(){
     const now = nairobiNow();
     $time.innerHTML = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds())+'<small> EAT</small>';
+
+    const ny = nyInfo();
+    $nyTime.textContent = pad(ny.h)+':'+pad(ny.m);
+    if (ny.weekend){
+      $nyDot.className = 'ny-dot';
+      $nyStx.className = 'ny-status closed';
+      $nyStx.textContent = 'Weekend · closed';
+    } else if (ny.isOpen){
+      $nyDot.className = 'ny-dot live';
+      $nyStx.className = 'ny-status live';
+      $nyStx.textContent = 'Market open';
+    } else {
+      $nyDot.className = 'ny-dot';
+      $nyStx.className = 'ny-status wait';
+      $nyStx.textContent = 'Pre-open';
+    }
 
     const day = now.getDay();
     const isWeekday = day >= 1 && day <= 5;
@@ -1000,6 +1132,55 @@ footer{border-top:1px solid var(--line);padding:52px 0 40px;background:var(--ink
   }
   tick();
   setInterval(tick, 1000);
+})();
+
+/* ================= RISK / POSITION-SIZE CALCULATOR ================= */
+(function(){
+  const $account = document.getElementById('rcAccount');
+  const $risk = document.getElementById('rcRisk');
+  const $instrument = document.getElementById('rcInstrument');
+  const $stop = document.getElementById('rcStop');
+  const $stopUnit = document.getElementById('rcStopUnit');
+  const $stopUnitSingular = document.getElementById('rcStopUnitSingular');
+  const $riskAmount = document.getElementById('rcRiskAmount');
+  const $perUnit = document.getElementById('rcPerUnit');
+  const $lots = document.getElementById('rcLots');
+  const $warning = document.getElementById('rcWarning');
+  if (!$account) return;
+
+  const fmt = n => '$' + n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+
+  function recalc(){
+    const acct = Math.max(0, parseFloat($account.value) || 0);
+    const riskPct = Math.max(0, parseFloat($risk.value) || 0);
+    const stop = Math.max(0, parseFloat($stop.value) || 0);
+    const isGold = $instrument.value === 'gold';
+    const stopUnit = isGold ? 'pips' : 'points';
+    const stopUnitSingular = isGold ? 'pip' : 'point';
+    const pv = isGold ? 10 : 20; // $ per unit per standard lot (estimate)
+
+    const riskAmt = acct * riskPct / 100;
+    const perUnitVal = stop > 0 ? riskAmt / stop : 0;
+    const lotsNum = stop > 0 ? perUnitVal / pv : 0;
+
+    $stopUnit.textContent = stopUnit;
+    $stopUnitSingular.textContent = stopUnitSingular;
+    $riskAmount.textContent = fmt(riskAmt);
+    $perUnit.textContent = fmt(perUnitVal);
+    $lots.textContent = lotsNum.toFixed(2) + ' lots';
+    $warning.hidden = riskPct <= 2;
+  }
+
+  [$account, $risk, $instrument, $stop].forEach(el => el.addEventListener('input', recalc));
+  recalc();
+})();
+
+/* ================= SCROLL NAV ================= */
+(function(){
+  const nav = document.querySelector('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 60);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
 })();
 
 /* ================= MOBILE NAV ================= */
